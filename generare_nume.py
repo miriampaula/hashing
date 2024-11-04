@@ -2,7 +2,6 @@ import random
 import itertools
 import pandas as pd
 
-# Seturi extinse de nume pentru generare (200 fiecare)
 nume_familie = [ "Popescu", "Ionescu", "Marin", "Dumitrescu", "Stan", "Stoica", "Gheorghe", "Popa", "Radu", "Munteanu",
     "Constantinescu", "Tudor", "Iliescu", "Dobre", "Barbu", "Nistor", "Sandu", "Dragomir", "Vasilescu", "Petrescu",
     "Nicolescu", "Manole", "Vasile", "Serban", "Mihai", "Avram", "Luca", "Dima", "Florea", "Toma", "Moldovan", 
@@ -54,41 +53,27 @@ prenume_feminine = [ "Maria", "Elena", "Ioana", "Gabriela", "Mihaela", "Alina", 
     "Virginia", "Lavinia", "Dorina", "Sanziana", "Narcisa", "Anisoara", "Marina", "Silvica", "Letitia"
 ]
 
-# Parametri pentru generare
 num_records = 1_000_000
-female_ratio = 0.511  # 51.1%
+female_ratio = 0.511  
 num_females = int(num_records * female_ratio)
 num_males = num_records - num_females
 
-# Creăm liste goale pentru a aduna combinațiile generate
 female_combinations = set()
 male_combinations = set()
 
-# Generare unică până la atingerea numărului dorit de înregistrări pentru femei
-print("Generare nume pentru femei...")
 while len(female_combinations) < num_females:
     fam = random.choice(nume_familie)
-    fn, sn = random.sample(prenume_feminine, 2)  # selectăm două prenume unice
+    fn, sn = random.sample(prenume_feminine, 2)  
     full_name = (fam, fn, sn)
-    female_combinations.add(full_name)  # `set` gestionează automat unicitățile
+    female_combinations.add(full_name)  
 
-    # Afișează progresul la fiecare 100.000 de nume generate
-    if len(female_combinations) % 100000 == 0:
-        print(f"{len(female_combinations)} nume de femei generate.")
-
-# Generare unică până la atingerea numărului dorit de înregistrări pentru bărbați
-print("Generare nume pentru bărbați...")
 while len(male_combinations) < num_males:
     fam = random.choice(nume_familie)
-    fn, sn = random.sample(prenume_masculine, 2)  # selectăm două prenume unice
+    fn, sn = random.sample(prenume_masculine, 2) 
     full_name = (fam, fn, sn)
-    male_combinations.add(full_name)  # `set` gestionează automat unicitățile
+    male_combinations.add(full_name)  
 
-    # Afișează progresul la fiecare 100.000 de nume generate
-    if len(male_combinations) % 100000 == 0:
-        print(f"{len(male_combinations)} nume de bărbați generate.")
 
-# Creăm DataFrame cu datele și salvăm în CSV
 data_records = [("F", f"{fam} {fn} {sn}") for fam, fn, sn in female_combinations] + \
                [("M", f"{fam} {fn} {sn}") for fam, fn, sn in male_combinations]
 

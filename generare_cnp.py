@@ -1,19 +1,16 @@
 import random
 import pandas as pd
 
-# Parametrii pentru distribuția CNP-urilor
 num_records = 1_000_000
-female_ratio = 0.511  # 51.1%
-male_ratio = 1 - female_ratio  # 48.9%
+female_ratio = 0.511 
+male_ratio = 1 - female_ratio  
 
-# Distribuția pe grupe de vârstă (în procente)
 age_groups = {
-    '0-14': 0.15,     # 15%
-    '15-59': 0.60,    # 60%
-    '60+': 0.25       # 25%
+    '0-14': 0.15,     
+    '15-59': 0.60,    
+    '60+': 0.25       
 }
 
-# Codurile județelor (presupunem că sunt disponibile ca procentaje)
 judete = {
     1: 1.76,      # Alba
     2: 1.48,      # Arad
@@ -62,16 +59,13 @@ judete = {
 }
 
 
-# Transformăm procentele județelor într-o listă de coduri repetate pentru sampling ușor
 judete_expanded = [j for j, pct in judete.items() for _ in range(int(pct * 10))]
 
-# Codificare sex și secol pentru generarea CNP-urilor
 sex_code = {
     "F": {"0-14": "6", "15-59": "2", "60+": "4"},
     "M": {"0-14": "5", "15-59": "1", "60+": "3"}
 }
 
-# Generare CNP în funcție de anul nașterii și datele demografice
 def genereaza_cnp(sex, age_group, judet_code):
     secol_cod = sex_code[sex][age_group]
     
@@ -82,21 +76,16 @@ def genereaza_cnp(sex, age_group, judet_code):
     elif age_group == '60+':
         an = random.randint(1924, 1963)
 
-    # Formatăm anul, luna și ziua
-    aa = str(an % 100).zfill(2)  # Ultimele două cifre ale anului
+    aa = str(an % 100).zfill(2)  
     ll = str(random.randint(1, 12)).zfill(2)
-    zz = str(random.randint(1, 28)).zfill(2)  # Zile între 1-28 pentru simplitate
+    zz = str(random.randint(1, 28)).zfill(2)  
     
-    # Cod județ, asigurându-ne că este numeric
     jj = str(int(judet_code)).zfill(2)
     
-    # Număr unic de identificare (aleator între 001 și 999)
     nnn = str(random.randint(1, 999)).zfill(3)
 
-    # Formăm CNP-ul fără cifra de control
     cnp_fara_control = f"{secol_cod}{aa}{ll}{zz}{jj}{nnn}"
     
-    # Calculăm cifra de control pentru validitate
     control_weights = [2, 7, 9, 1, 4, 6, 3, 5, 8, 2, 7, 9]
     suma = sum(int(cnp_fara_control[i]) * control_weights[i] for i in range(12))
     cifra_control = suma % 11
@@ -104,7 +93,6 @@ def genereaza_cnp(sex, age_group, judet_code):
     
     return cnp_fara_control + str(cifra_control)
 
-# Generăm CNP-urile conform distribuției pe sexe și grupe de vârstă
 records = []
 for _ in range(num_records):
     sex = "F" if random.random() < female_ratio else "M"
@@ -113,7 +101,6 @@ for _ in range(num_records):
     cnp = genereaza_cnp(sex, age_group, judet_code)
     records.append((sex, age_group, judet_code, cnp))
 
-# Salvăm datele în CSV
 df = pd.DataFrame(records, columns=["Sex", "Age_Group", "Judet_Code", "CNP"])
 df.to_csv("cnp_generat.csv", index=False)
 print("Fișierul CSV cu CNP-uri a fost generat!")

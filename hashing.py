@@ -1,11 +1,12 @@
 import pandas as pd
 import hashlib
+import matplotlib.pyplot as plt
 
 df = pd.read_csv("nume_cu_cnp.csv", dtype={"CNP": str})
 df = df.dropna(subset=["CNP"])  
 cnp_list = [(row['CNP'].strip(), index) for index, row in df.iterrows()] 
 
-table_size = 900907  
+table_size = 997  
 
 hash_table = [[] for _ in range(table_size)]
 
@@ -43,56 +44,94 @@ def hash_function_concatenated_ascii_and_index(cnp, original_index, table_size):
 
 
 for cnp, original_index in cnp_list:
-    index = hash_function_concatenated_ascii_and_index(cnp, original_index, table_size)  
+    index = hash_function_concatenated_ascii(cnp, table_size)  
     hash_table[index].append(cnp)
 
+# Load the sample file for lookups
 df_sample = pd.read_csv("cnp_sample.csv", header=None, names=["CNP", "Original_Index"])
+df_sample["CNP"] = df_sample["CNP"].astype(str).str.strip()  # Ensure CNPs are strings and stripped
+df_sample["Original_Index"] = df_sample["Original_Index"].astype(str).str.strip()  # Ensure CNPs are strings and stripped
 
+
+# Stats for sample lookups
 iteration_count = 0
 found_count = 0
-total_iterations = 0  
+total_iterations = 0
+iterations_per_search = []
 
 for _, row in df_sample.iterrows():
-    cnp = str(row['CNP'])  
-    original_index = row['Original_Index']
-    
-    cnp = cnp.strip() 
+    cnp = row["CNP"]
+    original_index = row["Original_Index"]
 
-    index = hash_function_concatenated_ascii_and_index(cnp, original_index, table_size) 
-    current_iterations = 0 
+    index = hash_function_concatenated_ascii(cnp, table_size)
+
+    current_iterations = 0
     found = False
 
     for stored_cnp in hash_table[index]:
-        current_iterations += 1 
+        current_iterations += 1
         if stored_cnp == cnp:
             found = True
-            break  
+            break
 
     if found:
         found_count += 1
-        total_iterations += current_iterations  
+        total_iterations += current_iterations
+        iterations_per_search.append(current_iterations)
 
-    iteration_count += 1  
 average_iterations = total_iterations / found_count if found_count > 0 else 0
 
+# Slot Utilization and Distribution
+non_empty_bins = sum(1 for slot in hash_table if slot)
+empty_bins = table_size - non_empty_bins
+load_factor = non_empty_bins / table_size
 
-print(f"Total iterații: {total_iterations}")
-print(f"Media iterațiilor per CNP găsit: {average_iterations:.2f}")
-
-non_empty_bins = sum(1 for slot in hash_table if slot)  
-print(f"Total sloturi goale: {len(hash_table) - non_empty_bins} din {table_size}")
-print(f"Procent sloturi utilizate: {non_empty_bins / table_size:.2%}")
-
+# Entry distribution
 entry_counts = {}
-for slot in hash_table:  
+for slot in hash_table:
     count = len(slot)
     if count > 0:
-        if count in entry_counts:
-            entry_counts[count] += 1
-        else:
-            entry_counts[count] = 1
+        entry_counts[count] = entry_counts.get(count, 0) + 1
 
-total_slots = len(hash_table)
-for count, num_slots in entry_counts.items():
-    percentage = (num_slots / total_slots) * 100
-    print(f"Procent sloturi cu {count} intrări: {percentage:.2f}%")
+entry_counts_df = pd.DataFrame(list(entry_counts.items()), columns=["Entries_Per_Slot", "Number_Of_Slots"])
+entry_counts_df["Percentage"] = (entry_counts_df["Number_Of_Slots"] / table_size) * 100
+
+# Distribution statistics output
+distribution_statistics = {
+    "Total Iterations": total_iterations,
+    "Average Iterations Per Found CNP": average_iterations,
+    "Empty Slots": empty_bins,
+    "Non-Empty Slots": non_empty_bins,
+    "Load Factor": load_factor,
+}
+
+# Save data to a file
+summary_statistics_df = pd.DataFrame({
+    "Metric": ["Total Iterations", "Average Iterations Per Found CNP", "Empty Slots", 
+               "Non-Empty Slots", "Load Factor"],
+    "Value": [total_iterations, average_iterations, empty_bins, non_empty_bins, load_factor]
+})
+entry_counts_df.to_csv("hash_table_statistics.csv", index=False)
+summary_statistics_df.to_csv("hash_table_summary_statistics.csv", index=False)
+
+# Plotting results
+# Histogram of entry count per slot
+plt.figure(figsize=(10, 6))
+plt.bar(entry_counts_df["Entries_Per_Slot"], entry_counts_df["Percentage"])
+plt.xlabel("Entries Per Slot")
+plt.ylabel("Percentage of Slots (%)")
+plt.title("Distribution of Entries Per Slot")
+plt.show()
+
+# Histogram of iterations per search
+plt.figure(figsize=(10, 6))
+plt.hist(iterations_per_search, bins=range(1, max(iterations_per_search) + 1), edgecolor='black', alpha=0.7)
+plt.xlabel("Iterations to Find CNP")
+plt.ylabel("Frequency")
+plt.title("Distribution of Iterations to Find a CNP in Sample Data")
+plt.show()
+
+# Print overall statistics to console
+print("Overall Distribution Statistics:", distribution_statistics)
+print("Entry distribution saved to 'hash_table_statistics.csv'")
+print("Summary statistics saved to 'hash_table_summary_statistics.csv'")
